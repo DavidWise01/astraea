@@ -1,0 +1,14 @@
+{
+  "name": "astraea",
+  "version": "1.0.0",
+  "description": "Restitution Engine. TRIPOD v5.0 pipeline (7 stages, STOICHEION axiom routing). Multi-domain claim compiler (ADA/WAGE/AI_EXTRACTION/CREATIVITY/NATURAL_LAW). 60/20/15/5 blockchain ledger. 3/5 Rhythm Three.js dashboard. Python CLI. No external deps.",
+  "author": "David Lee Wise (ROOT0) / TriPod LLC",
+  "license": "CC-BY-ND-4.0",
+  "homepage": "https://github.com/DavidWise01/astraea",
+  "repository": {"type":"git","url":"https://github.com/DavidWise01/astraea.git"},
+  "keywords": [
+    "astraea","restitution","ubi","tripod","stoicheion","60-20-15-5",
+    "claim-compiler","blockchain-ledger","ada","wage-theft","ai-extraction",
+    "three-js","root0","tripod-llc"
+  ]
+}

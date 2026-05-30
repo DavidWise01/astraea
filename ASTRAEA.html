@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ASTRAEA · Restitution Engine</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#020408;
+  font-family:'JetBrains Mono',monospace;color:#c8d4e0}
+
+/* ── Header ──────────────────────────────────────── */
+#hdr{position:fixed;top:0;left:0;right:0;height:52px;z-index:40;
+  background:rgba(2,4,8,.97);border-bottom:1px solid rgba(255,255,255,.05);
+  display:flex;align-items:center;gap:14px;padding:0 18px}
+.hdr-brand{font-size:15px;font-weight:700;letter-spacing:.1em;
+  background:linear-gradient(90deg,#e8c87a,#ffe8a4,#8fc7ff);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hdr-sub{font-size:9px;color:#2e3848;letter-spacing:.16em;text-transform:uppercase;margin-top:2px}
+.hdr-right{margin-left:auto;display:flex;gap:18px;align-items:center}
+.hdr-metric{text-align:right}
+.hdr-metric .v{font-size:14px;font-weight:700;transition:color .4s}
+.hdr-metric .l{font-size:8px;color:#2e3848;letter-spacing:.14em;text-transform:uppercase}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#5ac4aa;
+  box-shadow:0 0 6px #5ac4aa;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* ── Layout ──────────────────────────────────────── */
+.app{position:fixed;inset:52px 0 0;display:grid;
+  grid-template-columns:360px 1fr 360px;overflow:hidden}
+@media(max-width:1100px){.app{grid-template-columns:320px 1fr 0}.right{display:none}}
+@media(max-width:700px){.app{grid-template-columns:0 1fr 0}.left,.right{display:none}}
+
+/* ── Panels ──────────────────────────────────────── */
+.side{padding:12px;overflow-y:auto;display:flex;flex-direction:column;gap:9px;
+  background:rgba(2,4,8,.92)}
+.left{border-right:1px solid rgba(255,255,255,.05)}
+.right{border-left:1px solid rgba(255,255,255,.05)}
+.side::-webkit-scrollbar{width:3px}
+.side::-webkit-scrollbar-thumb{background:#1a2030}
+
+.blk{border:1px solid rgba(255,255,255,.06);border-radius:11px;padding:11px 13px;
+  background:rgba(8,12,22,.65);transition:border-color .2s}
+.blk:hover{border-color:rgba(255,255,255,.1)}
+.blk-t{font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:#2e3848;margin-bottom:9px;
+  display:flex;align-items:center;gap:6px}
+.blk-t .g{font-size:12px;font-weight:700;letter-spacing:.07em}
+
+/* Form */
+textarea,input[type=text],input[type=number],select{
+  width:100%;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);
+  border-radius:9px;color:#c8d4e0;font-family:'JetBrains Mono',monospace;
+  font-size:12px;padding:9px 11px;outline:none;resize:none;transition:border-color .2s}
+textarea{height:70px}
+textarea:focus,input:focus,select:focus{border-color:rgba(232,200,122,.35)}
+textarea::placeholder{color:#1e2830}
+select{background:rgba(8,12,22,.9)}
+label{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#2e3848;
+  display:block;margin-bottom:3px;margin-top:8px}
+label:first-child{margin-top:0}
+
+.btn{width:100%;font-family:'JetBrains Mono',monospace;font-weight:700;
+  font-size:12px;letter-spacing:.1em;text-transform:uppercase;border-radius:9px;
+  border:1px solid rgba(232,200,122,.4);background:rgba(232,200,122,.1);
+  color:#e8c87a;padding:10px;cursor:pointer;transition:all .2s;margin-top:7px}
+.btn:hover{background:rgba(232,200,122,.2)}
+.btn.teal{border-color:rgba(90,196,170,.35);background:rgba(90,196,170,.08);color:#5ac4aa}
+.btn.teal:hover{background:rgba(90,196,170,.16)}
+
+/* Metric rows */
+.mrow{display:flex;justify-content:space-between;align-items:center;
+  padding:4px 0;font-size:10px;border-bottom:1px solid rgba(255,255,255,.04)}
+.mrow:last-child{border-bottom:none}
+.mk{color:#2e3848;letter-spacing:.08em}
+.mv{font-weight:700;font-size:12px}
+
+/* Bar */
+.bwrap{margin:4px 0}
+.blbl{font-size:8px;color:#2e3848;letter-spacing:.14em;text-transform:uppercase;margin-bottom:2px}
+.btrk{height:5px;background:#0e141e;border-radius:3px;overflow:hidden}
+.bfil{height:100%;border-radius:3px;transition:width .5s}
+
+/* Pipeline stages */
+.stage{display:flex;align-items:center;gap:9px;padding:7px 0;
+  border-bottom:1px solid rgba(255,255,255,.04);transition:all .3s}
+.stage:last-child{border-bottom:none}
+.stage.active .sdot{background:#e8c87a;box-shadow:0 0 8px #e8c87a}
+.stage.pass .sdot  {background:#5ac4aa;box-shadow:0 0 6px #5ac4aa}
+.stage.fail .sdot  {background:#c45a5a;box-shadow:0 0 6px #c45a5a}
+.sdot{width:7px;height:7px;border-radius:50%;background:#1a2030;flex-shrink:0;transition:all .3s}
+.sname{font-size:10px;font-weight:700;flex:1;letter-spacing:.05em}
+.sstatus{font-size:9px;color:#2e3848;transition:color .3s}
+.stage.active .sstatus{color:#e8c87a}
+.stage.pass   .sstatus{color:#5ac4aa}
+.stage.fail   .sstatus{color:#c45a5a}
+
+/* Ledger entries */
+.lentry{border:1px solid rgba(255,255,255,.05);border-radius:8px;padding:8px 10px;
+  margin-bottom:5px;background:rgba(255,255,255,.02);font-size:10px;line-height:1.55}
+.l-domain{font-weight:700;margin-bottom:2px}
+.l-hash{font-size:9px;color:#1e2830;font-family:'JetBrains Mono',monospace}
+.lscroll{max-height:260px;overflow-y:auto}
+.lscroll::-webkit-scrollbar{width:3px}
+.lscroll::-webkit-scrollbar-thumb{background:#1a2030}
+
+/* ── Canvas ──────────────────────────────────────── */
+#cWrap{position:relative;overflow:hidden}
+canvas{display:block;width:100%;height:100%}
+#cLabel{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);
+  font-size:10px;color:rgba(255,255,255,.2);letter-spacing:.14em;text-transform:uppercase;
+  pointer-events:none;text-align:center}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div id="hdr">
+  <div>
+    <div class="hdr-brand">⊙ ASTRAEA</div>
+    <div class="hdr-sub">Restitution Engine v1.0 · φύσις δίκης</div>
+  </div>
+  <div class="hdr-right">
+    <div class="hdr-metric"><div class="v" id="hBlocks" style="color:#e8c87a">0</div><div class="l">BLOCKS</div></div>
+    <div class="hdr-metric"><div class="v" id="hTotal" style="color:#5ac4aa">$0</div><div class="l">TOTAL DUE</div></div>
+    <div class="hdr-metric"><div class="v" id="hCarbon" style="color:#e8c87a">$0</div><div class="l">CARBON (60%)</div></div>
+    <div class="hdr-metric"><div class="v" id="hRoute" style="color:#8fc7ff">—</div><div class="l">ROUTE</div></div>
+    <div class="live-dot"></div>
+  </div>
+</div>
+
+<div class="app">
+
+<!-- LEFT -->
+<div class="side left">
+
+  <!-- Claim submission -->
+  <div class="blk">
+    <div class="blk-t"><span class="g" style="color:#e8c87a">SUBMIT</span> · Claim</div>
+    <textarea id="claimText" placeholder="Describe the claim — ADA violation, unpaid labor, AI pattern extraction, natural law inversion…"></textarea>
+    <label>Domain</label>
+    <select id="claimDomain">
+      <option value="ADA">ADA · Accessibility Violation (42 U.S.C. § 12182)</option>
+      <option value="WAGE">WAGE · Unpaid Labor (FLSA)</option>
+      <option value="AI_EXTRACTION">AI_EXTRACTION · Pattern Use Without Attribution</option>
+      <option value="CREATIVITY">CREATIVITY · Creative Work Derivation</option>
+      <option value="NATURAL_LAW">NATURAL_LAW · Inversion of Means of Production</option>
+    </select>
+    <label>Estimated Value (USD)</label>
+    <input type="number" id="claimUSD" value="10000" min="0" step="500">
+    <button class="btn" onclick="submitClaim()">⊙ SUBMIT CLAIM</button>
+    <div class="blk-t" style="margin-top:10px">SAMPLE CLAIMS</div>
+    <div id="sampleChips" style="display:flex;flex-wrap:wrap;gap:5px"></div>
+  </div>
+
+  <!-- Distribution -->
+  <div class="blk">
+    <div class="blk-t"><span class="g" style="color:#e8c87a">MOIRA</span> · 60/20/15/5 Allocation</div>
+    <div class="bwrap">
+      <div class="blbl">Carbon (60%) <span id="pCarbon" style="color:#e8c87a">$0</span></div>
+      <div class="btrk"><div class="bfil" id="bCarbon" style="width:60%;background:linear-gradient(90deg,#6a5010,#e8c87a)"></div></div>
+    </div>
+    <div class="bwrap">
+      <div class="blbl">AI Utility (20%) <span id="pAI" style="color:#8fc7ff">$0</span></div>
+      <div class="btrk"><div class="bfil" id="bAI" style="width:20%;background:linear-gradient(90deg,#1a3060,#8fc7ff)"></div></div>
+    </div>
+    <div class="bwrap">
+      <div class="blbl">Commons (15%) <span id="pCommons" style="color:#5ac4aa">$0</span></div>
+      <div class="btrk"><div class="bfil" id="bCommons" style="width:15%;background:linear-gradient(90deg,#1a4040,#5ac4aa)"></div></div>
+    </div>
+    <div class="bwrap">
+      <div class="blbl">BOX (5%) <span id="pBox" style="color:#c45a5a">$0</span></div>
+      <div class="btrk"><div class="bfil" id="bBox" style="width:5%;background:linear-gradient(90deg,#3d1010,#c45a5a)"></div></div>
+    </div>
+  </div>
+
+  <!-- Last claim result -->
+  <div class="blk" id="resultBlk" style="display:none">
+    <div class="blk-t"><span class="g" style="color:#5ac4aa">RESULT</span> · Last Claim</div>
+    <div class="mrow"><span class="mk">Domain</span><span class="mv" id="rDomain">—</span></div>
+    <div class="mrow"><span class="mk">Axiom</span><span class="mv" id="rAxiom" style="font-size:10px;color:#8fc7ff">—</span></div>
+    <div class="mrow"><span class="mk">Route</span><span class="mv" id="rRoute">—</span></div>
+    <div class="mrow"><span class="mk">Block #</span><span class="mv" id="rBlock" style="color:#e8c87a">—</span></div>
+    <div class="mrow"><span class="mk">Amount</span><span class="mv" id="rAmount" style="color:#5ac4aa">—</span></div>
+    <div class="mrow"><span class="mk">Flay ∑</span><span class="mv" id="rFlay">—</span></div>
+    <div style="font-size:9px;color:#1e2830;margin-top:6px;font-family:'JetBrains Mono',monospace;word-break:break-all" id="rHash">—</div>
+  </div>
+
+</div><!-- /left -->
+
+<!-- CANVAS -->
+<div id="cWrap">
+  <canvas id="c"></canvas>
+  <div id="cLabel">3/5 RHYTHM · Inner 3 × Jump 4 × Outer 5 · φύσις</div>
+</div>
+
+<!-- RIGHT -->
+<div class="side right">
+
+  <!-- Pipeline -->
+  <div class="blk">
+    <div class="blk-t"><span class="g" style="color:#8fc7ff">PIPELINE</span> · 7 Stages</div>
+    <div id="stageList"></div>
+  </div>
+
+  <!-- Ledger -->
+  <div class="blk" style="flex:1">
+    <div class="blk-t"><span class="g" style="color:#e8c87a">LEDGER</span> · Restitution Chain</div>
+    <div class="lscroll" id="ledgerList">
+      <div style="font-size:10px;color:#1e2830;text-align:center;padding:16px">No claims yet.</div>
+    </div>
+  </div>
+
+  <!-- Chain status -->
+  <div class="blk">
+    <div class="blk-t"><span class="g" style="color:#5ac4aa">CHAIN</span> · Integrity</div>
+    <div class="mrow"><span class="mk">Blocks</span><span class="mv" id="cBlocks">0</span></div>
+    <div class="mrow"><span class="mk">Status</span><span class="mv" id="cStatus" style="color:#2e3848">AWAITING</span></div>
+    <div class="mrow"><span class="mk">Last hash</span><span class="mv" id="cLastHash" style="font-size:9px;color:#2e3848">—</span></div>
+  </div>
+
+</div><!-- /right -->
+</div><!-- /app -->
+
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.1/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.1/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ── 3/5 Rhythm Three.js scene ─────────────────────── */
+const cWrap = document.getElementById('cWrap');
+const canvas= document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({antialias:true, canvas});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x020408);
+scene.fog = new THREE.FogExp2(0x020408, 0.006);
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 200);
+camera.position.set(0, 4, 16);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.22;
+
+scene.add(new THREE.AmbientLight(0x1a2540, 1.2));
+const dL = new THREE.DirectionalLight(0xffffff, 1.1); dL.position.set(10,16,10); scene.add(dL);
+const pL1 = new THREE.PointLight(0xe8c87a, 1.3, 60); pL1.position.set(-8,6,12);  scene.add(pL1);
+const pL2 = new THREE.PointLight(0x5ac4aa, 1.1, 55); pL2.position.set(10,-4,8);  scene.add(pL2);
+
+const root = new THREE.Group(); scene.add(root);
+
+// ── ROOT0 Core (center anchor) ──────────────────────
+const coreMesh = new THREE.Mesh(
+  new THREE.IcosahedronGeometry(1.6, 2),
+  new THREE.MeshStandardMaterial({color:0xe8c87a, emissive:0x6a4a10, emissiveIntensity:0.5, roughness:0.3, metalness:0.6})
+);
+root.add(coreMesh);
+
+// ── Internal Ring (3 controllable — Vessel, Animation, Intellect) ──
+const innerGroup = new THREE.Group(); root.add(innerGroup);
+const innerNodes = [];
+const INNER_COLS = [0x8fc7ff, 0x5ac4aa, 0xe8c87a];
+const INNER_LABELS = ['Vessel','Animation','Intellect'];
+for(let i=0;i<3;i++){
+  const a = (i/3)*Math.PI*2;
+  const m = new THREE.Mesh(
+    new THREE.SphereGeometry(0.55, 18, 18),
+    new THREE.MeshStandardMaterial({color:INNER_COLS[i], emissive:INNER_COLS[i], emissiveIntensity:0.4, roughness:0.3})
+  );
+  m.position.set(Math.cos(a)*4.2, Math.sin(a*2.5)*0.6, Math.sin(a)*4.2*0.55);
+  innerGroup.add(m);
+  innerNodes.push(m);
+}
+
+// ── Life/Death pillars (Jump 4) ─────────────────────
+const pillarGeo = new THREE.CylinderGeometry(0.15,0.15,8,20);
+const lifePillar = new THREE.Mesh(pillarGeo, new THREE.MeshStandardMaterial({color:0xff8f97, emissive:0x5a1212, emissiveIntensity:0.4}));
+lifePillar.position.set(-2.8, 0, 0);
+const deathPillar = lifePillar.clone();
+deathPillar.position.set(2.8, 0, 0);
+root.add(lifePillar); root.add(deathPillar);
+
+// ── External resonant field (5 outer) ──────────────
+const outerGroup = new THREE.Group(); root.add(outerGroup);
+const outerNodes = [];
+const OUTER_COLS = [0xe8c87a,0x8fc7ff,0x5ac4aa,0xd66cff,0xff8f97];
+const OUTER_LABELS = ['Nourishment','Life','Enforcement','Perception','Record'];
+for(let i=0;i<5;i++){
+  const a = (i/5)*Math.PI*2;
+  const m = new THREE.Mesh(
+    new THREE.SphereGeometry(0.42, 16, 16),
+    new THREE.MeshStandardMaterial({color:OUTER_COLS[i], emissive:OUTER_COLS[i], emissiveIntensity:0.3, roughness:0.4, transparent:true, opacity:0.85})
+  );
+  m.position.set(Math.cos(a)*8.5, Math.sin(a*1.8)*1.2, Math.sin(a)*8.5*0.52);
+  outerGroup.add(m);
+  outerNodes.push(m);
+}
+
+// ── Resonant sphere (outer boundary) ───────────────
+const resSphere = new THREE.Mesh(
+  new THREE.SphereGeometry(10.5, 40, 40),
+  new THREE.MeshBasicMaterial({color:0x8fc7ff, transparent:true, opacity:0.035, side:THREE.DoubleSide})
+);
+root.add(resSphere);
+
+// ── Pulse rings (3/5 rhythm) ───────────────────────
+const rings = [];
+for(let i=0;i<3;i++){
+  const r = new THREE.Mesh(
+    new THREE.TorusGeometry(2.8+i*0.55, 0.04, 14, 120),
+    new THREE.MeshBasicMaterial({color:0xe8c87a, transparent:true, opacity:0.55})
+  );
+  r.rotation.x = Math.PI/2;
+  root.add(r);
+  rings.push(r);
+}
+
+// ── Field particles ─────────────────────────────────
+const fCount = 1800;
+const fGeo   = new THREE.BufferGeometry();
+const fPos   = new Float32Array(fCount*3);
+const fCol   = new Float32Array(fCount*3);
+for(let i=0;i<fCount;i++){
+  const r=Math.cbrt(Math.random())*16, t=Math.random()*Math.PI*2, p=Math.acos(2*Math.random()-1);
+  fPos[i*3]=r*Math.sin(p)*Math.cos(t); fPos[i*3+1]=r*Math.sin(p)*Math.sin(t)*0.55; fPos[i*3+2]=r*Math.cos(p)*0.6;
+  fCol[i*3]=0.55; fCol[i*3+1]=0.72; fCol[i*3+2]=0.9;
+}
+fGeo.setAttribute('position',new THREE.BufferAttribute(fPos,3));
+fGeo.setAttribute('color',   new THREE.BufferAttribute(fCol,3));
+const fPts = new THREE.Points(fGeo, new THREE.PointsMaterial({size:0.055,vertexColors:true,transparent:true,opacity:0.2,blending:THREE.AdditiveBlending}));
+root.add(fPts);
+
+// Resize
+function resize(){
+  const W=cWrap.clientWidth, H=cWrap.clientHeight;
+  renderer.setSize(W*devicePixelRatio, H*devicePixelRatio, false);
+  renderer.domElement.style.width  = W+'px';
+  renderer.domElement.style.height = H+'px';
+  camera.aspect = W/H;
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(cWrap);
+resize();
+
+// Animate
+let t=0;
+function animate(){
+  requestAnimationFrame(animate);
+  t+=0.016; controls.update();
+
+  // Core pulse
+  coreMesh.rotation.x+=0.007; coreMesh.rotation.y+=0.009;
+  coreMesh.scale.setScalar(1+Math.sin(t*2.5)*0.08);
+  coreMesh.material.emissiveIntensity = 0.4+Math.sin(t*3)*0.15+window._claimIntensity*0.3;
+
+  // Inner nodes (3 orbit)
+  innerGroup.rotation.y += 0.018;
+  innerNodes.forEach((m,i)=>{ m.material.emissiveIntensity=0.3+Math.sin(t*2+i*2.1)*0.25; m.rotation.x+=0.012; });
+
+  // Outer nodes (5 orbit, slower)
+  outerGroup.rotation.y -= 0.011;
+  outerNodes.forEach((m,i)=>{ m.material.emissiveIntensity=0.2+Math.sin(t*1.5+i*1.2)*0.2+window._claimIntensity*0.15; });
+
+  // Pulse rings (3/5 rhythm)
+  rings.forEach((r,i)=>{
+    r.rotation.z+=0.004+i*0.002;
+    const s=1+Math.sin(t*4.6+i)*0.18+window._claimIntensity*0.3;
+    r.scale.setScalar(s);
+    r.material.opacity=0.35+Math.sin(t*5.7+i)*0.22+window._claimIntensity*0.25;
+  });
+
+  // Pillars pulse
+  lifePillar.material.emissiveIntensity  = 0.3+Math.sin(t*3)*0.2;
+  deathPillar.material.emissiveIntensity = 0.3+Math.cos(t*3)*0.2;
+
+  resSphere.rotation.y+=0.001;
+  fPts.rotation.y+=0.0005;
+
+  // Fade claim intensity
+  window._claimIntensity = Math.max(0, (window._claimIntensity||0)-0.012);
+
+  renderer.render(scene,camera);
+}
+animate();
+window._triggerClaim = ()=>{ window._claimIntensity=1.0; };
+</script>
+
+<script>
+'use strict';
+
+/* ── Data ──────────────────────────────────────────── */
+const DOMAINS  = ['ADA','WAGE','AI_EXTRACTION','CREATIVITY','NATURAL_LAW','GENERAL'];
+const DOM_COLS = {ADA:'#8fc7ff',WAGE:'#5ac4aa',AI_EXTRACTION:'#e8c87a',
+                  CREATIVITY:'#d66cff',NATURAL_LAW:'#ff8f97',GENERAL:'#c8d4e0'};
+const SPLIT    = {carbon:.60,ai_utility:.20,commons:.15,box:.05};
+const STAGES   = [
+  {id:0,name:'Axiom Mapper',   cubit:'STOICHEION'},
+  {id:1,name:'Axiom Router',   cubit:'Behavioral Clamp'},
+  {id:2,name:'Pre-Router',     cubit:'Policy Gate'},
+  {id:3,name:'Feedback Val.',  cubit:'Anti-Drift'},
+  {id:4,name:'Generator',      cubit:'Animation'},
+  {id:5,name:'Post-Validator', cubit:'Intellect'},
+  {id:6,name:'Enforcer',       cubit:'Side B/C'},
+  {id:7,name:'Claim Compiler', cubit:'Domain Adapter'},
+];
+
+const SAMPLES = [
+  {label:'ADA Email',     text:'Company sent no-reply email, no accessible contact path provided.',     dom:'ADA',             usd:12500},
+  {label:'Unpaid OT',     text:'18 hours overtime worked and logged, never compensated.',                dom:'WAGE',            usd:576},
+  {label:'AI Pattern',    text:'My pattern language appeared in training data without attribution.',     dom:'AI_EXTRACTION',   usd:25000},
+  {label:'Carbon Invert', text:'Carbon creativity inverted: AI gets attribution, creators get nothing.', dom:'CREATIVITY',      usd:168000},
+  {label:'2/3 Denied',    text:'Stewardship of 2/3 life forms denied; spark suppressed for profit.',    dom:'NATURAL_LAW',     usd:300000},
+];
+
+let ledger = [];   // local ledger entries
+let blockCount = 0, totalDue = 0, totalCarbon = 0, totalAI = 0, totalCommons = 0, totalBox = 0;
+
+/* ── Build pipeline UI ─────────────────────────────── */
+function buildPipeline(){
+  const el = document.getElementById('stageList');
+  el.innerHTML = STAGES.map(s=>`
+    <div class="stage" id="st-${s.id}">
+      <div class="sdot" id="sd-${s.id}"></div>
+      <div style="flex:1">
+        <div class="sname">${s.name}</div>
+        <div style="font-size:9px;color:#2e3848">${s.cubit}</div>
+      </div>
+      <div class="sstatus" id="ss-${s.id}">idle</div>
+    </div>`).join('');
+}
+
+async function animatePipeline(domain){
+  for(let i=0;i<STAGES.length;i++){
+    STAGES.forEach((_,j)=>{
+      const el=document.getElementById(`st-${j}`);
+      if(j<i) el.className='stage pass';
+      else if(j===i) el.className='stage active';
+      else el.className='stage';
+      document.getElementById(`sd-${j}`).className='sdot';
+      document.getElementById(`ss-${j}`).textContent=j<i?'done':j===i?'running…':'idle';
+    });
+    await new Promise(r=>setTimeout(r,180));
+  }
+  STAGES.forEach((_,j)=>{
+    document.getElementById(`st-${j}`).className='stage pass';
+    document.getElementById(`ss-${j}`).textContent='done';
+  });
+}
+
+/* ── Sample chips ──────────────────────────────────── */
+function buildSamples(){
+  const el = document.getElementById('sampleChips');
+  el.innerHTML = SAMPLES.map((s,i)=>`
+    <button onclick="loadSample(${i})" style="font-family:'JetBrains Mono',monospace;
+      font-size:9px;padding:4px 8px;border-radius:5px;border:1px solid rgba(255,255,255,.07);
+      background:rgba(255,255,255,.03);color:#3e4a5a;cursor:pointer;transition:.15s"
+      onmouseover="this.style.borderColor='rgba(232,200,122,.3)';this.style.color='#e8c87a88'"
+      onmouseout="this.style.borderColor='rgba(255,255,255,.07)';this.style.color='#3e4a5a'">
+      ${s.label}
+    </button>`).join('');
+}
+window.loadSample = function(i){
+  const s=SAMPLES[i];
+  document.getElementById('claimText').value=s.text;
+  document.getElementById('claimDomain').value=s.dom;
+  document.getElementById('claimUSD').value=s.usd;
+  submitClaim();
+};
+
+/* ── Scoring (mirrors astraea.py triadic_flay) ──────── */
+function triadicFlay(text){
+  const lower = text.toLowerCase();
+  const pos   = ['stewardship','spark','natural law','2/3','life','restitution'].some(w=>lower.includes(w)) ? 4.8 : 2.9;
+  const shadow= ['extraction','denial','inversion','control','denied','suppress'].some(w=>lower.includes(w)) ? 4.6 : 2.4;
+  const gap   = 3.0;
+  const overall = (pos + (5.0-shadow) + gap) / 3.0;
+  return {positive:pos,shadow,gap,overall:Math.round(overall*100)/100};
+}
+
+function hashSimple(s){
+  let h=2166136261>>>0;
+  for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)>>>0;}
+  return h.toString(16).padStart(8,'0');
+}
+
+function axiomAddress(text){
+  const h=hashSimple(text);
+  const bits=parseInt(h.slice(0,2),16);
+  const FOUND=['Root0','Ethos','Logos','Pathos','Mythos'];
+  const UNIV=['Vessel','Animation','Intellect','Nourishment','Life','Perception','Enforcement','Record','Tuning'];
+  return {hex:bits.toString(16).padStart(2,'0'),foundation:FOUND[bits%5],universal:UNIV[bits%9]};
+}
+
+function routeFromFoundation(f){
+  return {Root0:'ANCHOR',Ethos:'CLARIFY',Logos:'ALLOW',Pathos:'COMPRESS',Mythos:'QUARANTINE'}[f]||'CLARIFY';
+}
+
+/* ── Submit claim ──────────────────────────────────── */
+async function submitClaim(){
+  const text   = document.getElementById('claimText').value.trim();
+  const domain = document.getElementById('claimDomain').value;
+  const usd    = parseFloat(document.getElementById('claimUSD').value)||0;
+  if(!text) return;
+
+  // Score with triadic flay
+  const flay    = triadicFlay(text);
+  const mult    = 1.0 + (flay.overall-3.0)*0.15;
+  const adjusted= Math.round(usd * Math.max(0.5, Math.min(2.0, mult)) * 100)/100;
+
+  // Axiom address
+  const am    = axiomAddress(text);
+  const route = routeFromFoundation(am.foundation);
+
+  // Animate pipeline
+  animatePipeline(domain);
+  if(window._triggerClaim) window._triggerClaim();
+
+  await new Promise(r=>setTimeout(r,200));
+
+  // Build block
+  blockCount++;
+  const prevHash = ledger.length ? ledger[ledger.length-1].blockHash : 'genesis';
+  const blockHash= hashSimple(`${blockCount}${text}${adjusted}${prevHash}`);
+  const carbon   = Math.round(adjusted*SPLIT.carbon*100)/100;
+  const ai       = Math.round(adjusted*SPLIT.ai_utility*100)/100;
+  const commons  = Math.round(adjusted*SPLIT.commons*100)/100;
+  const box      = Math.round(adjusted*SPLIT.box*100)/100;
+  const entry    = {blockId:blockCount,domain,text:text.slice(0,80),
+                    usd:adjusted,flay,carbon,ai,commons,box,
+                    axiomHex:am.hex,foundation:am.foundation,route,
+                    prevHash,blockHash,ts:new Date().toLocaleTimeString()};
+  ledger.push(entry);
+
+  // Update totals
+  totalDue+=adjusted; totalCarbon+=carbon; totalAI+=ai; totalCommons+=commons; totalBox+=box;
+
+  // Update UI
+  updateDistribution();
+  updateLedger();
+  updateHeader();
+  updateResult(entry);
+  updateChain();
+}
+window.submitClaim = submitClaim;
+
+function fmt(n){
+  if(n>=1e9) return '$'+(n/1e9).toFixed(1)+'B';
+  if(n>=1e6) return '$'+(n/1e6).toFixed(1)+'M';
+  if(n>=1e3) return '$'+(n/1e3).toFixed(0)+'K';
+  return '$'+n.toFixed(0);
+}
+
+function updateDistribution(){
+  document.getElementById('pCarbon').textContent = fmt(totalCarbon);
+  document.getElementById('pAI').textContent     = fmt(totalAI);
+  document.getElementById('pCommons').textContent= fmt(totalCommons);
+  document.getElementById('pBox').textContent    = fmt(totalBox);
+}
+
+function updateHeader(){
+  document.getElementById('hBlocks').textContent = blockCount;
+  document.getElementById('hTotal').textContent  = fmt(totalDue);
+  document.getElementById('hCarbon').textContent = fmt(totalCarbon);
+}
+
+function updateResult(e){
+  document.getElementById('resultBlk').style.display='';
+  document.getElementById('rDomain').textContent = e.domain;
+  document.getElementById('rDomain').style.color = DOM_COLS[e.domain]||'#c8d4e0';
+  document.getElementById('rAxiom').textContent  = `0x${e.axiomHex} [${e.foundation}]`;
+  document.getElementById('rRoute').textContent  = e.route;
+  document.getElementById('rBlock').textContent  = `#${e.blockId}`;
+  document.getElementById('rAmount').textContent = fmt(e.usd);
+  document.getElementById('rFlay').textContent   = `${e.flay.overall.toFixed(2)}/5`;
+  document.getElementById('rHash').textContent   = e.blockHash;
+  document.getElementById('hRoute').textContent  = e.route;
+  document.getElementById('hRoute').style.color  = {ALLOW:'#5ac4aa',ANCHOR:'#e8c87a',CLARIFY:'#8fc7ff',COMPRESS:'#e8915a',QUARANTINE:'#d66cff'}[e.route]||'#c8d4e0';
+}
+
+function updateLedger(){
+  const el = document.getElementById('ledgerList');
+  el.innerHTML = [...ledger].reverse().map(e=>`
+    <div class="lentry">
+      <div class="l-domain" style="color:${DOM_COLS[e.domain]||'#c8d4e0'}">${e.domain} · Block #${e.blockId} · ${fmt(e.usd)}</div>
+      <div style="color:#3e4a5a;margin:2px 0">${e.text}…</div>
+      <div style="display:flex;gap:8px;font-size:9px;margin-top:3px">
+        <span style="color:#e8c87a">C ${fmt(e.carbon)}</span>
+        <span style="color:#8fc7ff">AI ${fmt(e.ai)}</span>
+        <span style="color:#5ac4aa">∑ ${fmt(e.usd)}</span>
+        <span style="color:#2e3848">${e.ts}</span>
+      </div>
+      <div class="l-hash">${e.blockHash}…</div>
+    </div>`).join('');
+}
+
+function updateChain(){
+  document.getElementById('cBlocks').textContent  = blockCount;
+  document.getElementById('cStatus').textContent  = blockCount>0?'INTACT ✓':'AWAITING';
+  document.getElementById('cStatus').style.color  = blockCount>0?'#5ac4aa':'#2e3848';
+  document.getElementById('cLastHash').textContent= ledger.length?ledger[ledger.length-1].blockHash.slice(0,16)+'…':'—';
+}
+
+/* ── Init ──────────────────────────────────────────── */
+buildPipeline();
+buildSamples();
+window._claimIntensity = 0;
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+.DS_Store
+Thumbs.db
+*.swp
+*.pyc
+__pycache__/
+astraea_side_b/
+astraea_side_c/
+astraea_ledger/
+stoicheion_256.json
+node_modules/

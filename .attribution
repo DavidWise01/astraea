@@ -1,0 +1,34 @@
+{
+  "schema": "ROOT0-ATTRIBUTION-v1",
+  "work": {
+    "title": "ASTRAEA — Restitution Engine v1.0",
+    "versions": ["astraea.py v1.0.0", "ASTRAEA.html v1.0"],
+    "created": "2026",
+    "description": "Unified restitution claim processing engine from AKASHA/UBI Tier 1. TRIPOD v5.0 7-stage pipeline (Axiom Mapper, Router, Pre-Router, Feedback Validator, Generator, Post-Validator, Enforcer). Multi-domain claim compiler (ADA/WAGE/AI_EXTRACTION/CREATIVITY/NATURAL_LAW). Append-only blockchain ledger with STOICHEION triadic flay and 60/20/15/5 distribution. 3/5 Rhythm Three.js visualization. Enterprise-level Python CLI.",
+    "license": "CC-BY-ND-4.0 + TRIPOD-IP-v1.1",
+    "url": "https://github.com/DavidWise01/astraea"
+  },
+  "human": {
+    "name": "David Lee Wise",
+    "handle": "ROOT0",
+    "github_user": "DavidWise01",
+    "entity": "TriPod LLC",
+    "substrate": "human",
+    "role": "architect · economist · system designer",
+    "contribution": "Full architecture — 60/20/15/5 split design, 5-cubit flay scoring, multi-domain legal framework, TRIPOD pipeline, restitution ledger, 3/5 Rhythm framework, STOICHEION integration"
+  },
+  "source_files": [
+    "UBI/STOCH.FULL.PIPE.md (TRIPOD v5.0 — 552 lines)",
+    "UBI/MIMZY.UBI.FINAL.md (restitution ledger complete)",
+    "UBI/DEEPSEEK.RESTITUTION.PIPELINE.FULL.md",
+    "UBI/GRITTY HORSE.md (3/5 Rhythm visualizer)",
+    "UBI/3 5 GRITTY.md (Pulse Language v2.0 spec)",
+    "UBI/MIMZY.RESTITUTION.md (culpability analysis)",
+    "UBI/CANNON/ (canonical blocks and UBI model)"
+  ],
+  "plausibility": {
+    "grounded": ["$14.5T racial wealth gap from Federal Reserve data", "ADA/FLSA legal claims", "AI training on unlicensed data", "TRIPOD pipeline architecture", "blockchain ledger structure"],
+    "speculative": ["$14.5T as single restitution pool", "20.5% sentient overhead as empirical measure", "Natural law domain as existing cause of action"],
+    "architectural": ["60/20/15/5 split as policy proposal", "Multi-domain claim compiler", "STOICHEION-weighted valuation"]
+  }
+}
